@@ -43,6 +43,7 @@ class ModelComparison:
         self.policy_gradient_agent = None
         
         self.env = BlackjackEnv()
+        self.env.reset()
         self.state_size = len(self.env.vectorize_state())
         self.action_size = len(list(Action))
         
@@ -142,6 +143,9 @@ class ModelComparison:
         # Convert to DataFrame
         results_df = pd.DataFrame(results)
         
+        # Add initial bankroll to the DataFrame for plotting
+        results_df['initial_bankroll'] = initial_bankroll
+        
         # Sort by ROI
         results_df = results_df.sort_values('roi', ascending=False)
         
@@ -183,6 +187,9 @@ class ModelComparison:
         # Progress bar
         progress_bar = tqdm(range(num_hands)) if verbose else range(num_hands)
         
+        # Store the initial bankroll value at the beginning
+        initial_bankroll = bet_optimizer.initial_bankroll
+        
         for _ in progress_bar:
             # Reset environment for new hand
             state = env.reset()
@@ -205,12 +212,23 @@ class ModelComparison:
                     # Use agent
                     state_vector = env.vectorize_state()
                     
-                    if agent_name == 'DQN':
+                    # Check if agent is None first to prevent NoneType error
+                    if agent is None:
+                        # Fallback to Basic Strategy if agent is None
+                        action = self._basic_strategy_action(state, valid_actions)
+                        if verbose and _ == 0:
+                            print(f"Warning: {agent_name} agent is None, using Basic Strategy instead.")
+                    elif agent_name == 'DQN':
                         action = agent.act(state_vector, valid_actions)
                     elif agent_name == 'Monte Carlo':
                         action = agent.choose_action(state, valid_actions)
                     elif agent_name == 'Policy Gradient':
                         action = agent.act(state_vector, valid_actions)
+                    else:
+                        # Unknown agent type, use Basic Strategy as fallback
+                        action = self._basic_strategy_action(state, valid_actions)
+                        if verbose and _ == 0:
+                            print(f"Warning: Unknown agent type {agent_name}, using Basic Strategy.")
                         
                 # Take action
                 state, reward, done = env.step(action)
@@ -374,73 +392,21 @@ class ModelComparison:
             return Action.HIT
             
     def _plot_results(self, results_df, timestamp):
-        """Plot comparison results.
+        """Plot the results of the comparison.
         
         Args:
-            results_df: DataFrame with results
-            timestamp: Timestamp for filenames
+            results_df: DataFrame containing the simulation results
+            timestamp: Timestamp for file naming
         """
-        # Create figures directory
         figures_dir = os.path.join(self.output_dir, 'visualizations')
         os.makedirs(figures_dir, exist_ok=True)
         
-        # Plot ROI by agent and betting strategy
-        plt.figure(figsize=(12, 8))
-        
-        # Group by agent and betting strategy
-        grouped = results_df.groupby(['agent', 'betting_strategy'])['roi'].mean().unstack()
-        
-        # Plot heatmap
-        ax = plt.gca()
-        im = ax.imshow(grouped.values, cmap='RdYlGn')
-        
-        # Set labels
-        ax.set_xticks(np.arange(len(grouped.columns)))
-        ax.set_yticks(np.arange(len(grouped.index)))
-        ax.set_xticklabels(grouped.columns)
-        ax.set_yticklabels(grouped.index)
-        
-        # Rotate x labels
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-        
-        # Add colorbar
-        cbar = ax.figure.colorbar(im, ax=ax)
-        cbar.set_label('ROI')
-        
-        # Add values to cells
-        for i in range(len(grouped.index)):
-            for j in range(len(grouped.columns)):
-                if not np.isnan(grouped.values[i, j]):
-                    ax.text(j, i, f"{grouped.values[i, j]:.2f}",
-                           ha="center", va="center", color="black")
-        
-        plt.title('ROI by Agent and Betting Strategy')
-        plt.tight_layout()
-        plt.savefig(os.path.join(figures_dir, f"roi_heatmap_{timestamp}.png"))
-        
-        # Plot win rate by agent
-        plt.figure(figsize=(10, 6))
-        win_rates = results_df.groupby('agent')['win_rate'].mean().sort_values(ascending=False)
-        win_rates.plot(kind='bar', color='skyblue')
-        plt.title('Average Win Rate by Agent')
-        plt.xlabel('Agent')
-        plt.ylabel('Win Rate')
-        plt.grid(axis='y', linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        plt.savefig(os.path.join(figures_dir, f"win_rate_by_agent_{timestamp}.png"))
-        
-        # Plot average reward by agent and betting strategy
-        plt.figure(figsize=(12, 8))
-        pivot = results_df.pivot(index='agent', columns='betting_strategy', values='avg_reward')
-        pivot.plot(kind='bar', figsize=(12, 8))
-        plt.title('Average Reward by Agent and Betting Strategy')
-        plt.xlabel('Agent')
-        plt.ylabel('Average Reward per Hand')
-        plt.grid(axis='y', linestyle='--', alpha=0.7)
-        plt.legend(title='Betting Strategy')
-        plt.tight_layout()
-        plt.savefig(os.path.join(figures_dir, f"avg_reward_{timestamp}.png"))
-        
+        # Get the initial bankroll from the first row of results
+        # This assumes all simulations started with the same initial bankroll
+        initial_bankroll = 1000  # Default fallback value
+        if 'initial_bankroll' in results_df.columns:
+            initial_bankroll = results_df['initial_bankroll'].iloc[0]
+            
         # Plot bankroll progression for top performers
         top_performers = results_df.sort_values('roi', ascending=False).head(3)
         

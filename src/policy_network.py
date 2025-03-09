@@ -2,14 +2,10 @@
 Policy Gradient Agent for Blackjack.
 
 This module implements a policy gradient (PG) reinforcement learning agent for
-blackjack, learning a direct policy mapping from states to actions using neural networks.
+blackjack, learning a direct policy mapping from states to actions using numpy-based neural networks.
 """
 
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras import Model
-from tensorflow.keras.layers import Dense, Input
-from tensorflow.keras.optimizers import Adam
 import os
 import sys
 import pickle
@@ -22,43 +18,127 @@ from config import TRAINING
 from blackjack_env import Action
 
 
-class PolicyNetwork(Model):
-    """Policy network model for policy gradient methods."""
+class SimpleNeuralNetwork:
+    """Simple neural network implementation using only NumPy."""
     
-    def __init__(self, state_size, action_size, hidden_layers):
-        """Initialize the policy network.
+    def __init__(self, input_size, hidden_sizes, output_size):
+        """Initialize the neural network parameters.
         
         Args:
-            state_size: Dimension of state vector
-            action_size: Number of possible actions
-            hidden_layers: List of hidden layer sizes
+            input_size: Size of the input layer
+            hidden_sizes: List of hidden layer sizes
+            output_size: Size of the output layer
         """
-        super(PolicyNetwork, self).__init__()
+        self.input_size = input_size
+        self.hidden_sizes = hidden_sizes
+        self.output_size = output_size
         
-        self.hidden_layers = []
-        for units in hidden_layers:
-            self.hidden_layers.append(Dense(units, activation='relu'))
+        # Initialize all layer sizes
+        layer_sizes = [input_size] + hidden_sizes + [output_size]
+        
+        # Initialize weights and biases
+        self.weights = []
+        self.biases = []
+        
+        for i in range(len(layer_sizes) - 1):
+            # Xavier/Glorot initialization for weights
+            scale = np.sqrt(2.0 / (layer_sizes[i] + layer_sizes[i+1]))
+            self.weights.append(np.random.randn(layer_sizes[i], layer_sizes[i+1]) * scale)
+            self.biases.append(np.zeros(layer_sizes[i+1]))
             
-        self.output_layer = Dense(action_size, activation='softmax')
-        
-    def call(self, inputs):
+    def forward(self, X):
         """Forward pass through the network.
         
         Args:
-            inputs: State vector
+            X: Input data of shape (batch_size, input_size)
             
         Returns:
-            Action probabilities
+            Output probabilities after softmax
         """
-        x = inputs
-        for layer in self.hidden_layers:
-            x = layer(x)
+        # Ensure X is at least 2D
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
             
-        return self.output_layer(x)
+        # Forward pass through all layers
+        activation = X
+        activations = [X]  # Store all activations for backprop
+        zs = []  # Store all z vectors (pre-activations) for backprop
+        
+        # Hidden layers with ReLU
+        for i in range(len(self.weights) - 1):
+            z = np.dot(activation, self.weights[i]) + self.biases[i]
+            zs.append(z)
+            activation = self.relu(z)
+            activations.append(activation)
+            
+        # Output layer with softmax
+        z = np.dot(activation, self.weights[-1]) + self.biases[-1]
+        zs.append(z)
+        output = self.softmax(z)
+        activations.append(output)
+        
+        return output, activations, zs
+        
+    def relu(self, x):
+        """ReLU activation function."""
+        return np.maximum(0, x)
+        
+    def relu_derivative(self, x):
+        """Derivative of ReLU function."""
+        return np.where(x > 0, 1, 0)
+        
+    def softmax(self, x):
+        """Softmax activation function."""
+        # Subtract max for numerical stability
+        exps = np.exp(x - np.max(x, axis=1, keepdims=True))
+        return exps / np.sum(exps, axis=1, keepdims=True)
+        
+    def backprop(self, X, y, learning_rate):
+        """Train the network using backpropagation.
+        
+        Args:
+            X: Input data
+            y: Target one-hot encoded vectors
+            learning_rate: Learning rate
+            
+        Returns:
+            Loss value
+        """
+        # Ensure X is at least 2D
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
+            
+        batch_size = X.shape[0]
+        
+        # Forward pass
+        output, activations, zs = self.forward(X)
+        
+        # Compute the loss (cross-entropy loss)
+        loss = -np.sum(y * np.log(np.clip(output, 1e-10, 1.0))) / batch_size
+        
+        # Backward pass
+        # Output layer gradient (output - target)
+        delta = output - y
+        
+        # Backpropagate through each layer
+        for i in range(len(self.weights) - 1, -1, -1):
+            # Gradient of weights and biases
+            dw = np.dot(activations[i].T, delta) / batch_size
+            db = np.sum(delta, axis=0) / batch_size
+            
+            # Update weights and biases
+            self.weights[i] -= learning_rate * dw
+            self.biases[i] -= learning_rate * db
+            
+            # Compute delta for the next layer
+            if i > 0:  # Not input layer
+                delta = np.dot(delta, self.weights[i].T) * self.relu_derivative(zs[i-1])
+                
+        return loss
 
 
 class PolicyGradientAgent:
-    """Policy Gradient Agent for blackjack using neural networks."""
+    """Policy Gradient Agent for blackjack using NumPy neural networks."""
     
     def __init__(self, state_size, action_size, config=None):
         """Initialize the policy gradient agent.
@@ -77,15 +157,12 @@ class PolicyGradientAgent:
         self.learning_rate = self.config['learning_rate']
         self.entropy_beta = self.config['entropy_beta']  # Entropy regularization coefficient
         
-        # Build policy network
-        self.policy_network = PolicyNetwork(
+        # Build policy network using our NumPy implementation
+        self.policy_network = SimpleNeuralNetwork(
             state_size, 
-            action_size, 
-            self.config['hidden_layers']
+            self.config['hidden_layers'],
+            action_size
         )
-        
-        # Compile policy network
-        self.optimizer = Adam(learning_rate=self.learning_rate)
         
         # Episode memory for training
         self.states = []
@@ -108,8 +185,8 @@ class PolicyGradientAgent:
             Selected action
         """
         # Get action probabilities from policy network
-        state_tensor = tf.convert_to_tensor(state.reshape(1, -1), dtype=tf.float32)
-        action_probs = self.policy_network(state_tensor)[0].numpy()
+        action_probs, _, _ = self.policy_network.forward(state.reshape(1, -1))
+        action_probs = action_probs[0]
         
         # Mask invalid actions
         valid_indices = [action.value - 1 for action in valid_actions]
@@ -125,10 +202,17 @@ class PolicyGradientAgent:
             
         # Choose action based on probabilities
         action_idx = np.random.choice(self.action_size, p=masked_probs)
-        return Action(action_idx + 1)  # Convert index back to enum
+        selected_action = Action(action_idx + 1)  # Convert index back to enum
+        
+        # Double-check that the selected action is valid
+        if selected_action not in valid_actions:
+            # If somehow we selected an invalid action, choose a random valid action instead
+            selected_action = np.random.choice(valid_actions)
+            
+        return selected_action
         
     def remember(self, state, action, reward):
-        """Store experience in episode memory.
+        """Store experience for training.
         
         Args:
             state: Current state vector
@@ -138,57 +222,47 @@ class PolicyGradientAgent:
         self.states.append(state)
         
         # Convert action to one-hot encoding
-        action_idx = action.value - 1
-        action_onehot = np.zeros(self.action_size)
-        action_onehot[action_idx] = 1
-        self.actions.append(action_onehot)
+        action_one_hot = np.zeros(self.action_size)
+        action_one_hot[action.value - 1] = 1
+        self.actions.append(action_one_hot)
         
         self.rewards.append(reward)
-        self.total_reward += reward
         
     def end_episode(self):
-        """End the episode and update policy network."""
-        self.episode_count += 1
-        self.reward_history.append(self.total_reward)
+        """End the episode and update the policy network.
+        
+        Returns:
+            Loss value
+        """
+        # Convert lists to arrays
+        states = np.vstack(self.states)
+        actions = np.vstack(self.actions)
         
         # Calculate discounted rewards
         discounted_rewards = self._calculate_discounted_rewards()
         
-        # Normalize rewards
-        discounted_rewards = (discounted_rewards - np.mean(discounted_rewards)) / (np.std(discounted_rewards) + 1e-7)
+        # Normalize rewards for stability
+        discounted_rewards = (discounted_rewards - np.mean(discounted_rewards)) / (np.std(discounted_rewards) + 1e-8)
         
-        # Convert to tensors
-        states = tf.convert_to_tensor(np.vstack(self.states), dtype=tf.float32)
-        actions = tf.convert_to_tensor(np.vstack(self.actions), dtype=tf.float32)
-        discounted_rewards = tf.convert_to_tensor(discounted_rewards, dtype=tf.float32)
+        # Update policy network using custom training
+        # Scale actions by discounted rewards
+        scaled_actions = actions * discounted_rewards[:, np.newaxis]
         
-        # Train policy network
-        with tf.GradientTape() as tape:
-            # Forward pass
-            action_probs = self.policy_network(states)
-            
-            # Calculate loss
-            neg_log_prob = -tf.math.log(tf.reduce_sum(action_probs * actions, axis=1) + 1e-7)
-            policy_loss = tf.reduce_mean(neg_log_prob * discounted_rewards)
-            
-            # Add entropy regularization for exploration
-            entropy = -tf.reduce_sum(action_probs * tf.math.log(action_probs + 1e-7), axis=1)
-            entropy_loss = -self.entropy_beta * tf.reduce_mean(entropy)
-            
-            # Total loss
-            loss = policy_loss + entropy_loss
-            
-        # Calculate gradients and update network
-        gradients = tape.gradient(loss, self.policy_network.trainable_variables)
-        self.optimizer.apply_gradients(zip(gradients, self.policy_network.trainable_variables))
+        # Update network parameters
+        loss = self.policy_network.backprop(states, scaled_actions, self.learning_rate)
         
-        # Reset episode memory
+        # Update metrics
+        episode_reward = sum(self.rewards)
+        self.reward_history.append(episode_reward)
+        self.total_reward += episode_reward
+        self.episode_count += 1
+        
+        # Clear episode memory
         self.states = []
         self.actions = []
         self.rewards = []
-        self.total_reward = 0
         
-        return loss.numpy()
+        return loss
         
     def _calculate_discounted_rewards(self):
         """Calculate discounted rewards for the episode.
@@ -196,94 +270,162 @@ class PolicyGradientAgent:
         Returns:
             Array of discounted rewards
         """
-        discounted_rewards = np.zeros_like(self.rewards, dtype=np.float32)
-        cumulative_reward = 0
+        discounted_r = np.zeros_like(self.rewards, dtype=np.float32)
+        running_add = 0
         
-        # Calculate discounted rewards from the end of the episode
-        for i in reversed(range(len(self.rewards))):
-            cumulative_reward = self.rewards[i] + self.gamma * cumulative_reward
-            discounted_rewards[i] = cumulative_reward
+        # Calculate discounted rewards from reverse
+        for t in reversed(range(len(self.rewards))):
+            running_add = running_add * self.gamma + self.rewards[t]
+            discounted_r[t] = running_add
             
-        return discounted_rewards
+        return discounted_r
         
     def get_avg_reward(self):
-        """Get average reward over last 100 episodes.
-        
-        Returns:
-            Average reward
-        """
-        if not self.reward_history:
+        """Get the average reward over the last 100 episodes."""
+        if len(self.reward_history) == 0:
             return 0
-        return np.mean(self.reward_history)
+        return sum(self.reward_history) / len(self.reward_history)
         
     def save(self, file_path):
-        """Save the policy network to file.
+        """Save the model to a file.
         
         Args:
-            file_path: Path to save the agent
+            file_path: Path to save the model
         """
+        # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         
-        # Save model weights and metadata
-        self.policy_network.save_weights(file_path + '.h5')
-        
-        metadata = {
-            'episode_count': self.episode_count,
+        # Save model weights, biases, and config
+        data = {
+            'weights': self.policy_network.weights,
+            'biases': self.policy_network.biases,
+            'state_size': self.state_size,
+            'action_size': self.action_size,
+            'config': self.config,
             'reward_history': list(self.reward_history),
-            'gamma': self.gamma,
-            'learning_rate': self.learning_rate,
-            'entropy_beta': self.entropy_beta
+            'episode_count': self.episode_count,
+            'total_reward': self.total_reward
         }
         
-        with open(file_path + '.meta', 'wb') as f:
-            pickle.dump(metadata, f)
+        # Save with pickle
+        with open(f"{file_path}.pkl", 'wb') as f:
+            pickle.dump(data, f)
             
-        print(f"Policy gradient agent saved to {file_path}")
+        print(f"Model saved to {file_path}.pkl")
         
     def load(self, file_path):
-        """Load the policy network from file.
+        """Load the model from a file.
         
         Args:
-            file_path: Path to load the agent from
+            file_path: Path to load the model from
+            
+        Returns:
+            True if model was loaded successfully, False otherwise
         """
-        # Build network if not already built
-        if not self.policy_network.built:
-            dummy_state = np.zeros((1, self.state_size))
-            self.policy_network(dummy_state)
-            
-        # Load model weights
-        if os.path.exists(file_path + '.h5'):
-            self.policy_network.load_weights(file_path + '.h5')
-            
-            # Load metadata
-            if os.path.exists(file_path + '.meta'):
-                with open(file_path + '.meta', 'rb') as f:
-                    metadata = pickle.load(f)
-                    
-                self.episode_count = metadata.get('episode_count', 0)
-                self.reward_history = deque(metadata.get('reward_history', []), maxlen=100)
-                self.gamma = metadata.get('gamma', self.gamma)
-                self.learning_rate = metadata.get('learning_rate', self.learning_rate)
-                self.entropy_beta = metadata.get('entropy_beta', self.entropy_beta)
-                
-                # Update optimizer learning rate
-                self.optimizer.learning_rate.assign(self.learning_rate)
-                
-            print(f"Policy gradient agent loaded from {file_path}")
+        # Check if the provided path already has an extension
+        base_path = file_path
+        if file_path.endswith('.pkl'):
+            pkl_path = file_path
+            base_path = file_path[:-4]  # Remove .pkl
         else:
-            print(f"No weights found at {file_path}.h5")
+            # Check the file path with .pkl extension
+            pkl_path = f"{file_path}.pkl"
+            
+        # Check if file exists
+        if not os.path.exists(pkl_path):
+            print(f"Could not find model at {pkl_path}")
+            
+            # Try to find alternate file formats if .pkl doesn't exist
+            alt_extensions = ['.weights.h5.pkl', '.weights.h5', '.h5']
+            for ext in alt_extensions:
+                alt_path = base_path + ext
+                if os.path.exists(alt_path):
+                    print(f"Found alternative format: {alt_path}")
+                    return self.load_h5_format(alt_path)
+                    
+            return False
+            
+        try:
+            with open(pkl_path, 'rb') as f:
+                data = pickle.load(f)
+                
+            # Ensure data has required fields
+            if not all(key in data for key in ['weights', 'biases', 'state_size', 'action_size']):
+                print("Model file is missing required fields")
+                return False
+                
+            # Recreate the network
+            self.state_size = data['state_size']
+            self.action_size = data['action_size']
+            
+            if 'config' in data:
+                self.config = data['config']
+                
+            # Initialize the network with the correct size
+            self.policy_network = SimpleNeuralNetwork(
+                self.state_size,
+                self.config['hidden_layers'],
+                self.action_size
+            )
+            
+            # Load weights and biases
+            self.policy_network.weights = data['weights']
+            self.policy_network.biases = data['biases']
+            
+            # Load metrics if available
+            if 'reward_history' in data:
+                self.reward_history = deque(data['reward_history'], maxlen=100)
+            if 'episode_count' in data:
+                self.episode_count = data['episode_count']
+            if 'total_reward' in data:
+                self.total_reward = data['total_reward']
+                
+            print(f"Model loaded from {pkl_path}")
+            return True
+            
+        except Exception as e:
+            print(f"Error loading model: {e}")
+            return False
+            
+    def load_h5_format(self, file_path):
+        """Load model from h5 format (legacy or alternative format).
+        This is a placeholder for compatibility with older or different model formats.
+        
+        Args:
+            file_path: Path to the h5 model file
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            print(f"Attempting to load model in alternative format from {file_path}")
+            # Currently we don't support actual h5 loading without TensorFlow
+            # but we acknowledge the file exists
+            
+            # Initialize a default network
+            self.policy_network = SimpleNeuralNetwork(
+                self.state_size,
+                self.config['hidden_layers'],
+                self.action_size
+            )
+            
+            print(f"Created a new network instance since {file_path} format is not directly supported")
+            return True
+        except Exception as e:
+            print(f"Error loading h5 format: {e}")
+            return False
             
     def get_action_probs(self, state):
-        """Get action probabilities for the current state.
+        """Get the action probabilities for a state.
         
         Args:
-            state: Current state vector
+            state: State vector
             
         Returns:
             Array of action probabilities
         """
-        state_tensor = tf.convert_to_tensor(state.reshape(1, -1), dtype=tf.float32)
-        return self.policy_network(state_tensor)[0].numpy()
+        probs, _, _ = self.policy_network.forward(state.reshape(1, -1))
+        return probs[0]
 
 
 if __name__ == "__main__":

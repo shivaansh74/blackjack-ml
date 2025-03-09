@@ -30,17 +30,17 @@ class BettingStrategy(Enum):
 class BetOptimizer:
     """Bet optimizer for blackjack."""
     
-    def __init__(self, initial_bankroll=None, strategy=BettingStrategy.PROPORTIONAL):
+    def __init__(self, initial_bankroll=1000, min_bet=1, max_bet=100, strategy=BettingStrategy.FLAT):
         """Initialize the bet optimizer.
         
         Args:
             initial_bankroll: Starting bankroll (default from config)
             strategy: Betting strategy to use
         """
-        self.initial_bankroll = initial_bankroll or BETTING['initial_bankroll']
-        self.current_bankroll = self.initial_bankroll
-        self.min_bet = BETTING['min_bet']
-        self.max_bet = BETTING['max_bet']
+        self.initial_bankroll = initial_bankroll
+        self.current_bankroll = initial_bankroll
+        self.min_bet = min_bet
+        self.max_bet = max_bet
         self.strategy = strategy
         
         # Initialize card counter
