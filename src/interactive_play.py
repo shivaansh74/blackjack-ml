@@ -78,7 +78,7 @@ class InteractiveBlackjack:
                 "bet": INTERACTIVE['default_bet'],
                 "strategy": random.choice(["basic", "dqn", "random"])  # Random strategy type
             })
-            
+        
         # Game state
         self.player_bankroll = BETTING['initial_bankroll']
         self.bet_amount = INTERACTIVE['default_bet']
@@ -129,7 +129,7 @@ class InteractiveBlackjack:
         # AI opponents' turns
         for opponent in self.ai_opponents:
             self._ai_opponent_turn(opponent)
-            
+        
         # Finish hand (dealer's turn and payout)
         self._finish_hand()
         
@@ -406,12 +406,12 @@ class InteractiveBlackjack:
                     if action_input == 'b' and len(valid_actions) == 0:
                         print("No valid actions available for basic strategy to choose from.")
                     elif action_input not in valid_inputs:
-                        print(f"Invalid action. Choose from: {', '.join(action_display)}")
+                print(f"Invalid action. Choose from: {', '.join(action_display)}")
                     action_input = input("👉 Your action: ").lower()
                 
                 # If it's not basic strategy, execute the action directly
                 if action_input != 'b':
-                    action = action_map[action_input]
+            action = action_map[action_input]
                 else:
                     # Handle basic strategy again (this shouldn't happen but just in case)
                     state = self.env._get_state()
@@ -583,7 +583,7 @@ class InteractiveBlackjack:
             print(f"│  ✓ Recommended: {basic_strategy_action.name.ljust(10)}   │")
             
         print("└────────────────────────────────┘")
-        
+            
     def _finish_hand(self):
         """Finish the hand (dealer's turn and payout)."""
         # Show all cards
@@ -683,7 +683,7 @@ class InteractiveBlackjack:
             
         # Add a small delay
         time.sleep(0.5)
-        
+            
         while True:
             choice = input("\n🎮 Play another hand? (Y/N): ").lower()
             if choice in ['y', 'yes']:

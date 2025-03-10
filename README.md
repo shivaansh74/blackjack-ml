@@ -5,7 +5,18 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-1.10%2B-red)](https://pytorch.org/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-A sophisticated machine learning system that masters blackjack strategies through cutting-edge reinforcement learning algorithms. The AI learns optimal strategies for both gameplay decisions and betting through millions of simulated hands, incorporating card counting techniques and advanced risk management.
+**Author**: Shivaansh Dhingra  
+**Email**: dhingrashivaansh@gmail.com  
+**Repository**: [github.com/shivaansh74/blackjack-ml](https://github.com/shivaansh74/blackjack-ml)
+
+A sophisticated machine learning system that masters blackjack strategies through cutting-edge reinforcement learning algorithms. This research project combines advanced AI techniques with practical gameplay, culminating in an interactive blackjack experience where players can challenge and learn from various AI strategies.
+
+## 🎯 Project Goals
+
+1. **Research**: Investigate the effectiveness of different reinforcement learning approaches in mastering blackjack strategy
+2. **Implementation**: Develop a comprehensive suite of AI models using state-of-the-art algorithms
+3. **Analysis**: Compare and evaluate different strategies through rigorous statistical testing
+4. **Application**: Create an engaging interactive platform where users can play against and learn from the AI
 
 ## 🔥 Key Features
 
@@ -16,40 +27,49 @@ A sophisticated machine learning system that masters blackjack strategies throug
 - **Comparative Analysis**: Rigorous framework to evaluate each algorithm's performance
 
 ### Advanced Technical Components
-- **Professional Card Counting System**: Supports multiple counting strategies (Hi-Lo, KO, Hi-Opt I/II, etc.)
+- **Professional Card Counting System**: Supports multiple counting strategies (Hi-Lo, KO, Hi-Opt I/II)
 - **Dynamic Betting Optimization**: Kelly criterion, proportional betting, and progressive systems
 - **Custom Blackjack Environment**: Full casino rule implementation with configurable parameters
 - **Performance Metrics**: Comprehensive statistical analysis with visualizations
 - **Interactive Gameplay**: Play against the trained AI with strategy insights
 
-### Research-Driven Approach
-- **Statistical Significance Testing**: Ensures reliable performance comparisons
-- **Hyperparameter Optimization**: Fine-tuned models for maximum performance
-- **Multi-Model Ensemble**: Combines strengths of different algorithms
-- **Risk Management Analysis**: Bankroll strategies with theoretical guarantees
+## 📊 Results and Evaluation
 
-## 📋 Project Structure
+Our extensive experiments have yielded impressive results across different models and strategies. Here are key findings from our latest evaluation (March 2025):
 
-```
-blackjack_ai/
-├── src/                         # Source code
-│   ├── blackjack_env.py         # Custom blackjack environment
-│   ├── q_learning_agent.py      # Deep Q-Network implementation
-│   ├── monte_carlo_agent.py     # Monte Carlo learning agent
-│   ├── policy_network.py        # Policy gradient implementation
-│   ├── card_counter.py          # Card counting systems
-│   ├── bet_optimizer.py         # Betting strategy optimization
-│   ├── model_comparison.py      # Framework for comparing models
-│   ├── model_training.py        # Single model training script
-│   ├── train_all_models.py      # Train and compare all models
-│   └── interactive_play.py      # Human vs. AI gameplay
-├── models/                      # Saved models and checkpoints
-├── results/                     # Analysis results and visualizations
-├── data/                        # Training and simulation data
-├── config.py                    # Configuration parameters
-├── requirements.txt             # Project dependencies
-└── PROJECT_DOCUMENTATION.md     # Detailed technical documentation
-```
+### Model Performance Comparison
+Based on data from `model_comparison_20250309_190842.csv`:
+
+| Model Type | Win Rate | ROI | Avg. Hands/Hour |
+|-----------|----------|-----|-----------------|
+| DQN | 48.3% | +12.7% | 220 |
+| Monte Carlo | 47.9% | +11.2% | 245 |
+| Basic Strategy | 47.1% | +8.5% | 250 |
+
+### Training Progress Visualization
+
+#### DQN Performance
+![DQN Win Rate](results/visualizations/dqn_win_rate_20250309_145852.png)
+*DQN win rate progression during training*
+
+#### Monte Carlo Learning
+![Monte Carlo Policy](results/visualizations/mc_policy_final_20250309_145852.png)
+*Final Monte Carlo policy visualization*
+
+#### Bankroll Progression
+![Bankroll Growth](results/visualizations/bankroll_progression_20250309_190842.png)
+*Bankroll progression comparison across different strategies*
+
+#### ROI Analysis
+![ROI Heatmap](results/visualizations/roi_heatmap_20250309_170043.png)
+*ROI heatmap across different betting strategies and initial conditions*
+
+### Interactive Game Features
+- Multiple AI opponents with distinct personalities and strategies
+- Real-time strategy recommendations
+- Card counting assistance
+- Detailed session statistics
+- Beautiful CLI interface with emoji support
 
 ## 🚀 Getting Started
 
@@ -60,7 +80,7 @@ blackjack_ai/
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/blackjack-ml.git
+git clone https://github.com/shivaansh74/blackjack-ml.git
 cd blackjack-ml
 
 # Install dependencies
@@ -71,65 +91,153 @@ pip install -r requirements.txt
 
 **Train the AI models:**
 ```bash
-# Train all three model types (DQN, Monte Carlo, Policy Gradient)
+# Train all models
 python src/train_all_models.py --episodes 100000
 
-# Train a specific model (e.g., DQN)
-python src/model_training.py --episodes 50000
-```
-
-**Compare model performance:**
-```bash
-# Run comprehensive model comparison
-python src/model_comparison.py --hands 10000
+# Train specific model
+python src/model_training.py --model dqn --episodes 50000
 ```
 
 **Play against the AI:**
 ```bash
-# Interactive gameplay with strategy recommendations
+# Interactive gameplay
 python src/interactive_play.py
 
-# Specify a pre-trained model
+# Use specific model
 python src/interactive_play.py --model-path models/dqn_final.pkl
 ```
 
-## 📊 Results Preview
+## 📁 Project Structure
 
-Our experiments demonstrate that the reinforcement learning agents can achieve near-optimal play:
+```
+blackjack-ml/
+├── src/                         # Source code
+│   ├── blackjack_env.py         # Custom blackjack environment
+│   ├── q_learning_agent.py      # Deep Q-Network implementation
+│   ├── monte_carlo_agent.py     # Monte Carlo learning agent
+│   ├── policy_network.py        # Policy gradient implementation
+│   ├── card_counter.py          # Card counting systems
+│   ├── interactive_play.py      # Human vs. AI gameplay
+│   └── model_comparison.py      # Performance analysis
+├── models/                      # Trained model checkpoints (not in git)
+├── results/                     # Analysis results and visualizations
+├── config.py                    # Configuration parameters
+└── requirements.txt             # Project dependencies
+```
 
-- **Win Rate**: Up to 48.7% against the house (theoretical maximum ~49%)
-- **ROI**: +15.3% with optimized betting strategy incorporating card counting
-- **Learning Efficiency**: Policy convergence within 100,000 training episodes
+> **Note**: Model checkpoints are stored in the `models/` directory but are not included in the repository due to GitHub size limits. Pre-trained models are available upon request.
 
-![Learning Curves](https://via.placeholder.com/800x400?text=Learning+Curves+Visualization)
+## 📂 File Descriptions and Execution Order
 
-## 🧠 Machine Learning Approach
+### Core Files
+1. `main.py`: The primary entry point for the project. Runs the complete pipeline including training, evaluation, and interactive play.
+   ```bash
+   python src/main.py --mode [train|play|evaluate]
+   ```
 
-The project addresses several key challenges in applying reinforcement learning to blackjack:
+### Individual Components (in order of execution)
+1. `blackjack_env.py`
+   - Custom OpenAI Gym-style environment for blackjack
+   - Implements game rules, state management, and reward calculation
+   - Used by all learning agents and interactive play
 
-1. **Sparse Rewards**: Handled through careful credit assignment and reward shaping
-2. **Partial Observability**: Sophisticated state representation and probabilistic reasoning
-3. **Large State Space**: Function approximation with neural networks and state abstraction
-4. **Exploration-Exploitation Balance**: Dynamic exploration strategies with annealing schedules
+2. `card_counter.py`
+   - Implements various card counting systems (Hi-Lo, KO, Hi-Opt I/II)
+   - Provides real-time count statistics and betting recommendations
+   - Can be used independently or integrated with AI agents
 
-See [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) for detailed technical implementation details.
+3. Training Files (choose one):
+   - `q_learning_agent.py`: DQN implementation with experience replay
+   - `monte_carlo_agent.py`: Monte Carlo learning with state abstraction
+   - `policy_network.py`: Policy gradient methods implementation
+   ```bash
+   # Train specific agent
+   python src/q_learning_agent.py --episodes 50000
+   python src/monte_carlo_agent.py --episodes 50000
+   python src/policy_network.py --episodes 50000
+   ```
 
-## 🔗 Technical Reading and References
+4. `model_comparison.py`
+   - Evaluates and compares different trained models
+   - Generates performance metrics and visualizations
+   - Run after training to analyze results
+   ```bash
+   python src/model_comparison.py --models dqn,monte_carlo,policy
+   ```
 
-The implementation draws inspiration from several key research papers:
-- ["Deep Reinforcement Learning with Double Q-learning"](https://arxiv.org/abs/1509.06461) (van Hasselt et al., 2015)
-- ["Simple Statistical Gradient-Following Algorithms for Connectionist Reinforcement Learning"](https://link.springer.com/article/10.1007/BF00992696) (Williams, 1992)
-- ["Playing Atari with Deep Reinforcement Learning"](https://arxiv.org/abs/1312.5602) (Mnih et al., 2013)
+5. `interactive_play.py`
+   - Final component for human vs. AI gameplay
+   - Loads trained models and provides interactive experience
+   - Includes strategy recommendations and counting assistance
+   ```bash
+   python src/interactive_play.py --model-type dqn
+   ```
 
-## 🔧 Future Enhancements
+### Configuration
+- `config.py`: Central configuration file
+  - Game rules and parameters
+  - Model hyperparameters
+  - Training settings
+  - Visualization options
+
+### Alternative Quick Start
+For those who want to get started quickly, you can use our pre-trained models:
+```bash
+# Download pre-trained models (contact for access)
+python src/download_models.py
+
+# Start playing immediately
+python src/interactive_play.py --use-pretrained
+```
+
+## 📚 Research Background
+
+This project builds upon several foundational papers in reinforcement learning:
+
+1. "Deep Reinforcement Learning with Double Q-learning" (van Hasselt et al., 2015)
+2. "Playing Atari with Deep Reinforcement Learning" (Mnih et al., 2013)
+3. "Monte Carlo Tree Search in Continuous Action Spaces" (Yee et al., 2016)
+
+## 🎮 Interactive Game Features
+
+The project culminates in an engaging blackjack game that features:
+
+- Multiple AI opponents with different strategies
+- Real-time strategy recommendations
+- Basic strategy comparison
+- Card counting information
+- Session statistics and performance tracking
+- Beautiful CLI interface with intuitive controls
+
+## 🔄 Future Development
+
 - Neural architecture search for optimal model design
-- Counterfactual regret minimization implementation
-- Opponent modeling for adaptive gameplay
-- Web interface for model interaction
+- Web interface for broader accessibility
 - Multi-agent learning for team play scenarios
+- Additional casino game implementations
 
 ## 📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2025 Shivaansh Dhingra
 
 ## 🤝 Contributing
-Contributions are welcome! Please feel free to submit a Pull Request. 
+
+Contributions are welcome! Feel free to:
+- Submit bug reports
+- Propose new features
+- Submit pull requests
+
+## 📧 Contact
+
+For questions, collaborations, or access to pre-trained models:
+- **Email**: dhingrashivaansh@gmail.com
+- **GitHub**: [@shivaansh74](https://github.com/shivaansh74)
+
+## 🙏 Acknowledgments
+
+Special thanks to:
+- The TensorFlow team for their excellent deep learning framework
+- The reinforcement learning research community
+- All contributors and testers who helped improve this project
